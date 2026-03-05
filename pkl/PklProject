@@ -1,0 +1,10 @@
+amends "pkl:Project"
+
+local release = read("env:RELEASE")
+
+package {
+  name = "gen-lib"
+  version = release
+  baseUri = "package://nhatp.com/go/gen-lib/pkl"
+  packageZipUrl = "https://nhatp.com/go/gen-lib/pkl@\(version).zip"
+}

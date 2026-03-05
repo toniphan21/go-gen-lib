@@ -1,0 +1,5 @@
+
+import "package://nhatp.com/go/gen-lib/pkl@0.1.0#/gen.pkl"
+
+output: gen.Output
+

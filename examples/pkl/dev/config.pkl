@@ -1,0 +1,5 @@
+amends ".../Config.pkl"
+
+output {
+  package = ""
+}

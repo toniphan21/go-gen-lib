@@ -1,0 +1,29 @@
+@go.Package { name = "nhatp.com/go/gen-lib/pkl/match" }
+module genlib.match
+
+import "package://pkg.pkl-lang.org/pkl-go/pkl.golang@0.13.2#/go.pkl"
+
+import "gen.pkl"
+
+function with(string: String): gen.Matcher = new gen.Matcher {
+  type = "string"
+  pattern = string
+  options = new Mapping<String, Any> {
+    ["case_sensitive"] = false
+  }
+}
+
+function withIgnoreCase(string: String): gen.Matcher = new gen.Matcher {
+  type = "string"
+  pattern = string
+  options = new Mapping<String, Any> {
+    ["case_sensitive"] = true
+  }
+}
+
+function withFold(string: String) = withIgnoreCase(string)
+
+function regex(regex: String): gen.Matcher = new gen.Matcher {
+  type = "regex"
+  pattern = regex
+}

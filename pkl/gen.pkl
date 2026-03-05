@@ -1,0 +1,16 @@
+@go.Package { name = "nhatp.com/go/gen-lib/pkl/gen" }
+module genlib.gen
+
+import "package://pkg.pkl-lang.org/pkl-go/pkl.golang@0.13.2#/go.pkl"
+
+class Output {
+  package: String?
+  source: String?
+  test: String?
+}
+
+class Matcher {
+  type: String
+  pattern: String
+  options: Mapping<String, Any>
+}
