@@ -1,0 +1,18 @@
+@go.Package { name = "nhatp.com/go/gen-lib/pkl/dev" }
+module genlib.Example
+
+import "package://pkg.pkl-lang.org/pkl-go/pkl.golang@0.13.2#/go.pkl"
+
+import ".../gen.pkl"
+
+class MatcherUsage {
+  single: gen.Matcher
+
+  list: List<gen.Matcher>
+
+  union: gen.Matcher | List<gen.Matcher>
+
+  invalid_type: String = ""
+}
+
+matcher: MatcherUsage

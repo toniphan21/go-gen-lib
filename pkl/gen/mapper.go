@@ -1,6 +1,10 @@
 package gen
 
-import "nhatp.com/go/gen-lib"
+import (
+	"errors"
+
+	"nhatp.com/go/gen-lib"
+)
 
 func (o *Output) ToOutput() genlib.Output {
 	output := genlib.Output{}
@@ -16,4 +20,49 @@ func (o *Output) ToOutput() genlib.Output {
 		output.TestFileName = *o.Test
 	}
 	return output
+}
+
+func (m *Matcher) ToMatcher() (genlib.Matcher, error) {
+	return mapSingleMatcher(*m)
+}
+
+func mapSingleMatcher(i any) (genlib.Matcher, error) {
+	m, ok := i.(Matcher)
+	if !ok {
+		return nil, errors.New("unable to convert to matcher")
+	}
+
+	switch m.Type {
+	case "string":
+		ignoredCase := false
+		if m.Options != nil {
+			caseSensitive, exists := m.Options["case_sensitive"]
+			if exists {
+				b, ok := caseSensitive.(bool)
+				ignoredCase = ok && b
+			}
+		}
+		return genlib.NewStringMatcher(m.Pattern, ignoredCase), nil
+
+	case "regex":
+		return genlib.NewRegexMatcher(m.Pattern)
+	}
+	return nil, errors.New("unable to convert to matcher")
+}
+
+func ToMatcher(i any) (genlib.Matcher, error) {
+	list, ok := i.([]Matcher)
+	if !ok {
+		return mapSingleMatcher(i)
+	}
+	var matchers []genlib.Matcher
+	for _, v := range list {
+		o, err := mapSingleMatcher(v)
+		if err != nil {
+			return nil, err
+		}
+		matchers = append(matchers, o)
+	}
+
+	return genlib.NewListMatcher(matchers...), nil
 }

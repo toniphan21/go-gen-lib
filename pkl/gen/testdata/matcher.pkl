@@ -1,0 +1,13 @@
+amends "../../dev/Example.pkl"
+import ".../match.pkl"
+
+matcher {
+  single = match.with("value")
+  union = match.withIgnoreCase("value-ignore-case")
+
+  list = List(
+    match.with("string"),
+    match.withIgnoreCase("string"),
+    match.regex("regex-pattern")
+  )
+}
