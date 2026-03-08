@@ -1,4 +1,4 @@
-RELEASE := 0.2.0
+RELEASE := 0.3.0
 
 SERVER := root@nhatp.com
 WEB_ROOT := /var/www

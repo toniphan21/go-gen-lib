@@ -43,6 +43,18 @@ func Test_ToMatcher(t *testing.T) {
 
 			assert.Equal(t, `match "string" case sensitive, match "string" ignore case, match by regex "regex-pattern"`, result.String())
 		})
+
+		t.Run("can handle matcher in []any", func(t *testing.T) {
+			var input []any
+			for _, i := range cfg.Matcher.List {
+				input = append(input, i)
+			}
+
+			result, err := gen.ToMatcher(input)
+			require.NoError(t, err)
+
+			assert.Equal(t, `match "string" case sensitive, match "string" ignore case, match by regex "regex-pattern"`, result.String())
+		})
 	})
 
 	t.Run("method", func(t *testing.T) {

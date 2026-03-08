@@ -50,8 +50,29 @@ func mapSingleMatcher(i any) (genlib.Matcher, error) {
 	return nil, errors.New("unable to convert to matcher")
 }
 
-func ToMatcher(i any) (genlib.Matcher, error) {
+func castListMatcher(i any) ([]Matcher, bool) {
 	list, ok := i.([]Matcher)
+	if ok {
+		return list, true
+	}
+
+	slice, ok := i.([]any)
+	if !ok {
+		return nil, false
+	}
+
+	var result []Matcher
+	for _, v := range slice {
+		ele, ok := v.(Matcher)
+		if ok {
+			result = append(result, ele)
+		}
+	}
+	return result, true
+}
+
+func ToMatcher(i any) (genlib.Matcher, error) {
+	list, ok := castListMatcher(i)
 	if !ok {
 		return mapSingleMatcher(i)
 	}
