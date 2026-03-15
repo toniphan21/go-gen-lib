@@ -68,7 +68,11 @@ func (g *GoModFile) FileContent() []byte {
 }
 
 func (g *GoModFile) DirectDependencies() (map[string]string, error) {
-	f, err := modfile.Parse("go.mod", g.FileContent(), nil)
+	return ParseGoModDirectDependencies(g.FileContent())
+}
+
+func ParseGoModDirectDependencies(content []byte) (map[string]string, error) {
+	f, err := modfile.Parse("go.mod", content, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse go.mod: %w", err)
 	}

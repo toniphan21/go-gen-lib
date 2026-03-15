@@ -1,4 +1,4 @@
-RELEASE := 0.5.0
+RELEASE := $(shell sed -n 's/const Version = "\(.*\)"/\1/p' version.go)
 
 SERVER := root@nhatp.com
 WEB_ROOT := /var/www
@@ -13,3 +13,6 @@ upload-pkl:
 	scp ./.out/pkl@$(RELEASE)* $(SERVER):$(WEB_PATH)
 
 release-pkl: build-pkl upload-pkl
+
+version:
+	echo $(RELEASE)
