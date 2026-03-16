@@ -149,7 +149,7 @@ func (c *TestCmd) TestFiles() ([]testFile, int) {
 	return result, count
 }
 
-func (c *TestCmd) Execute(executeTestCase func(testCase TestCase, options map[string]any) genlib.FileManager) {
+func (c *TestCmd) Execute(executeTestCase func(testCase TestCase, options map[string]any) (genlib.FileManager, error)) {
 	SetTabSize(c.TabSize)
 
 	var total, passed, failed int
@@ -228,6 +228,7 @@ func (c *TestCmd) Execute(executeTestCase func(testCase TestCase, options map[st
 				}
 			}
 
+			isSuccess := true
 			var fm genlib.FileManager
 			if !setupOk {
 				c.PrintSetup("\tfailed to setup test")
@@ -235,11 +236,14 @@ func (c *TestCmd) Execute(executeTestCase func(testCase TestCase, options map[st
 				tc := tf.makeTestCase(md, tempDir)
 				opts := c.parseOptions(md.Content)
 
-				fm = executeTestCase(tc, opts)
+				fm, err = executeTestCase(tc, opts)
+				if err != nil {
+					isSuccess = false
+					c.PrintError("\t" + ColorRed(err.Error()))
+				}
 			}
 
 			// handle test result by comparing golden files in the fm and md.GoldenFile
-			isSuccess := true
 			if fm != nil {
 				for _, f := range fm.Files() {
 					err := c.writeTestFile(tempDir, f.RelPath, []byte(f.Content()))
