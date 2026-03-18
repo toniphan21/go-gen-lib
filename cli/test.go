@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,63 @@ import (
 	"nhatp.com/go/gen-lib/file"
 	"nhatp.com/go/gen-lib/gentest"
 )
+
+func PrefixMappedFilePathResolver(replaces map[string]string) func(string) string {
+	return func(path string) string {
+		if replaces == nil {
+			return path
+		}
+
+		for prefix, replaced := range replaces {
+			if strings.HasPrefix(path, prefix) {
+				return replaced + strings.TrimPrefix(path, prefix)
+			}
+		}
+
+		return path
+	}
+}
+
+func WithVanityURLFilePathResolver(replaces map[string]string) func(string) string {
+	prefixes := PrefixMappedFilePathResolver(replaces)
+	return func(path string) string {
+		out := prefixes(path)
+		if out != path {
+			return out
+		}
+		return VanityURLFilePathResolver(path)
+	}
+}
+
+func VanityURLFilePathResolver(input string) string {
+	vanityBase := "nhatp.com/go/"
+	prefixes := []string{
+		vanityBase,
+		"http://" + vanityBase,
+		"https://" + vanityBase,
+	}
+
+	var base string
+	for _, prefix := range prefixes {
+		if !strings.HasPrefix(input, prefix) {
+			continue
+		}
+
+		base = strings.TrimPrefix(input, prefix)
+		break
+	}
+
+	if base == "" {
+		return input
+	}
+
+	var outBase = "https://raw.githubusercontent.com/toniphan21/go-"
+	idx := strings.Index(base, "/")
+	if idx == -1 {
+		return outBase + base
+	}
+	return outBase + base[:idx] + "/refs/heads/main/" + base[idx+1:]
+}
 
 type TestCase struct {
 	TestFileName      string
@@ -33,9 +91,10 @@ type TestCmd struct {
 	Name      string   `arg:"-n,--name" help:"Run test which has matched name (case insensitive)" default:""`
 	ShowSetup bool     `arg:"-s,--show-setup" help:"Show test setup steps" default:"false"`
 	TabSize   int      `arg:"-t,--tab-size" help:"Number of spaces to use in tab size" default:"8"`
-	EmitCode  string   `arg:"-e,--emit-code" help:"Emit to code if the test passed. If emit is empty looking for path in Markdown comment." default:""`
+	EmitCode  string   `arg:"-e,--emit-code" help:"Emit to code if the test passed. If empty looking for path in Markdown comment." default:""`
 
-	logger *slog.Logger
+	logger           *slog.Logger
+	filePathResolver func(string) string
 }
 
 type failedTest struct {
@@ -76,7 +135,7 @@ func (t *testFile) makeTestCase(md gentest.MarkdownTestCase, dir string) TestCas
 func (c *TestCmd) matchName(name, term string) bool {
 	if strings.TrimSpace(term) != "" {
 		search := strings.ToLower(strings.TrimSpace(term))
-		return strings.Index(search, strings.ToLower(name)) != -1
+		return strings.Index(strings.ToLower(name), search) != -1
 	}
 	return false
 }
@@ -103,26 +162,58 @@ func (c *TestCmd) PrintSetupVerbose(msg string, args ...any) {
 	c.logger.Debug(msg, args...)
 }
 
+func (c *TestCmd) PrintFilePathResolved(in, out string) {
+	if in == out || c.logger == nil {
+		return
+	}
+
+	c.Print(fmt.Sprintf("   input: %s", ColorWhite(in)))
+	c.Print(fmt.Sprintf("resolved: %s", ColorWhite(out)))
+	c.Print("")
+}
+
 func (c *TestCmd) Print(msg string) {
 	c.logger.Info(msg)
+}
+
+func (c *TestCmd) readFileContent(path string) ([]byte, error) {
+	resolved := path
+	if c.filePathResolver != nil {
+		resolved = c.filePathResolver(path)
+	}
+	c.PrintFilePathResolved(path, resolved)
+
+	if strings.HasPrefix(resolved, "http") {
+		resp, err := http.Get(resolved)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			return nil, fmt.Errorf("http: %v", resp.Status)
+		}
+
+		return io.ReadAll(resp.Body)
+	}
+
+	stat, err := os.Stat(resolved)
+	if err != nil {
+		return nil, err
+	}
+
+	if stat.IsDir() {
+		return nil, errors.New(resolved + " is a directory")
+	}
+
+	return os.ReadFile(resolved)
 }
 
 func (c *TestCmd) TestFiles() ([]testFile, int) {
 	var count int
 	var result []testFile
 	for _, inputFile := range c.Files {
-		stat, err := os.Stat(inputFile)
-		if err != nil {
-			c.PrintError(ColorRed(err.Error()))
-			continue
-		}
-
-		if stat.IsDir() {
-			c.PrintWarn(ColorBlue(inputFile) + " is a directory, skipped")
-			continue
-		}
-
-		content, err := os.ReadFile(inputFile)
+		content, err := c.readFileContent(inputFile)
 		if err != nil {
 			c.PrintError(ColorRed(err.Error()))
 			continue
@@ -149,7 +240,14 @@ func (c *TestCmd) TestFiles() ([]testFile, int) {
 	return result, count
 }
 
-func (c *TestCmd) Execute(executeTestCase func(testCase TestCase, options map[string]any) (genlib.FileManager, error)) {
+func (c *TestCmd) Execute(
+	executeTestCase func(testCase TestCase, options map[string]any) (genlib.FileManager, error),
+	options ...ExecuteCmdOption,
+) {
+	for _, opt := range options {
+		opt.test(c)
+	}
+
 	SetTabSize(c.TabSize)
 
 	var total, passed, failed int

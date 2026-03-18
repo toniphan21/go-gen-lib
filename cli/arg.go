@@ -70,6 +70,14 @@ func WithGenerateLogPoints(logPoints *GenerateLogPoints) ExecuteCmdOption {
 	}
 }
 
+func WithTestFilePathResolver(resolver func(string) string) ExecuteCmdOption {
+	return &executeCmdOption{
+		applyTestCmd: func(cmd *TestCmd) {
+			cmd.filePathResolver = resolver
+		},
+	}
+}
+
 type Subcommand struct {
 	Setup       func(args *Arguments) error
 	HandleError func(err error, logger *slog.Logger)
@@ -119,6 +127,7 @@ func Run(cb Subcommand) {
 	case args.Test != nil:
 		cmd := *args.Test
 		cmd.logger = logger
+		cmd.filePathResolver = VanityURLFilePathResolver
 
 		if cb.Test != nil {
 			handleError(cb.Test(cmd), logger)
