@@ -237,3 +237,57 @@ func ZeroValueOfType(t types.Type) jen.Code {
 		return jen.Nil()
 	}
 }
+
+func ConstructorOfType(t types.Type) jen.Code {
+	switch tt := t.(type) {
+	case *types.Basic:
+		if tt.Kind() == types.Invalid {
+			return nil
+		}
+		if tt.Kind() == types.UnsafePointer {
+			return nil
+		}
+		if tt.Name() == "error" {
+			return nil
+		}
+		return nil
+
+	case *types.Pointer:
+		return jen.Op("&").Add(ConstructorOfType(tt.Elem()))
+
+	case *types.Named:
+		obj := tt.Obj()
+		pkg := obj.Pkg()
+		if pkg != nil {
+			return jen.Qual(pkg.Path(), obj.Name())
+		}
+		if pkg == nil && obj.Name() == "error" {
+			return nil
+		}
+		return jen.Id(obj.Name())
+
+	case *types.Slice:
+		return nil
+
+	case *types.Array:
+		return nil
+
+	case *types.Map:
+		return nil
+
+	case *types.Chan:
+		elemCode := ConstructorOfType(tt.Elem())
+		switch tt.Dir() {
+		case types.SendRecv:
+			return jen.Chan().Add(elemCode)
+		case types.SendOnly:
+			return jen.Chan().Op("<-").Add(elemCode)
+		case types.RecvOnly:
+			return jen.Op("<-").Chan().Add(elemCode)
+		}
+
+	default:
+		return nil
+	}
+	return nil
+}

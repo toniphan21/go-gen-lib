@@ -20,6 +20,13 @@ type MarkdownTestCase struct {
 	PklDevFileContent []byte
 }
 
+func (mtc *MarkdownTestCase) PklDevLines() []string {
+	if mtc.PklDevFileContent != nil {
+		return []string{string(mtc.PklDevFileContent)}
+	}
+	return nil
+}
+
 var mdParser = &markdownParser{}
 
 func ParseMarkdown(data []byte) []MarkdownTestCase {

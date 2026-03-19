@@ -34,6 +34,22 @@ func LoadPackages(dir string) ([]*packages.Package, error) {
 	return packages.Load(cfg, "./...")
 }
 
+func LoadPackagesWithGenFiles(dir string, fm FileManager) ([]*packages.Package, error) {
+	overlay := make(map[string][]byte)
+	for _, v := range fm.Files() {
+		overlay[v.FullPath] = []byte(v.Content())
+	}
+
+	cfg := &packages.Config{
+		Mode:    packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedSyntax | packages.NeedDeps | packages.NeedImports,
+		Fset:    token.NewFileSet(),
+		Overlay: overlay,
+		Dir:     dir,
+	}
+
+	return packages.Load(cfg, "./...")
+}
+
 func SetupSourceCode(dir string, files []file.File, additionalFiles ...file.File) error {
 	for _, f := range files {
 		if err := writeSourceFile(dir, f); err != nil {

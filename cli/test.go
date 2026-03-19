@@ -86,6 +86,13 @@ type TestCase struct {
 	PklDevFileContent []byte
 }
 
+func (tc *TestCase) PklDevLines() []string {
+	if tc.PklDevFileContent != nil {
+		return []string{string(tc.PklDevFileContent)}
+	}
+	return nil
+}
+
 type TestCmd struct {
 	Files     []string `arg:"positional" help:"Markdown file(s) to test" placeholder:"FILE"`
 	Name      string   `arg:"-n,--name" help:"Run test which has matched name (case insensitive)" default:""`
