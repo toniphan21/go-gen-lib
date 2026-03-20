@@ -70,3 +70,29 @@ func ColorWhite(text string) string {
 	}
 	return fmt.Sprintf("\u001B[0;37m%s\u001B[0m", text)
 }
+
+// ---
+
+func ColorGenerated(text string) string {
+	return ColorGreen(text)
+}
+
+func ColorSource(text string) string {
+	return ColorBlue(text)
+}
+
+func ColorBinary(text string) string {
+	return ColorWhite(text)
+}
+
+func ColorVersion(text string) string {
+	return text
+}
+
+func ColorInput(text string) string {
+	return ColorCyan(text)
+}
+
+func ColorPackage(text string) string {
+	return ColorYellow(text)
+}

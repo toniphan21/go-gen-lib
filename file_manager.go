@@ -40,6 +40,7 @@ type GenFile struct {
 	FullPath string
 	RelPath  string
 	jenFile  *jen.File
+	actions  map[string]bool
 }
 
 func (f *GenFile) JenFile() *jen.File {
@@ -49,6 +50,21 @@ func (f *GenFile) JenFile() *jen.File {
 func (f *GenFile) Content() string {
 	return f.jenFile.GoString()
 }
+
+func (f *GenFile) Once(action string, fn func()) *GenFile {
+	if f.actions == nil {
+		f.actions = make(map[string]bool)
+	}
+
+	if !f.actions[action] {
+		fn()
+	}
+
+	f.actions[action] = true
+	return f
+}
+
+// ---
 
 const defaultBinary = "generator"
 const defaultVersion = "dev"

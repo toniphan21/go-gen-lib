@@ -10,6 +10,31 @@ import (
 
 func Test_Output(t *testing.T) {}
 
+func Test_GenFile(t *testing.T) {
+	t.Run("Once", func(t *testing.T) {
+		var count int
+
+		gf := &GenFile{}
+		gf.Once("before", func() { count++ })
+		gf.Once("before", func() { count++ })
+		gf.Once("before", func() { count++ })
+		gf.Once("before", func() { count++ })
+		gf.Once("before", func() { count++ })
+
+		assert.Equal(t, 1, count)
+
+		gf.Once("after", func() { count++ })
+		gf.Once("after", func() { count++ })
+		gf.Once("after", func() { count++ })
+		gf.Once("after", func() { count++ })
+		gf.Once("after", func() { count++ })
+
+		assert.Equal(t, 2, count)
+		assert.Equal(t, map[string]bool{"before": true, "after": true}, gf.actions)
+		assert.Same(t, gf, gf.Once("anything", func() {}))
+	})
+}
+
 func Test_FileManager(t *testing.T) {
 	makeFileManager := func(opts ...FileManagerOption) FileManager {
 		var options = []FileManagerOption{WithBinaryName("gen")}
