@@ -1,6 +1,6 @@
 module nhatp.com/go/gen-lib
 
-go 1.25.1
+go 1.24.0
 
 require (
 	github.com/alexflint/go-arg v1.6.1

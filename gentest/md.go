@@ -135,15 +135,20 @@ func (p *markdownParser) parseTree(data []byte) []*mdBlock {
 	var stack []mdStackItem
 	var activeBlock *mdBlock
 
+	belongsToCodeBlock := false
 	for scanner.Scan() {
 		line := scanner.Text()
 		trimmedLine := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmedLine, "```") {
+			belongsToCodeBlock = !belongsToCodeBlock
+		}
 
 		// 1. Detect Header Level
 		level := 0
 		if strings.HasPrefix(trimmedLine, "#") {
 			for _, char := range trimmedLine {
-				if char == '#' {
+				if char == '#' && !belongsToCodeBlock {
 					level++
 				} else {
 					break
