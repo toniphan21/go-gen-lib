@@ -3,10 +3,15 @@ package gentest
 import (
 	"bufio"
 	"bytes"
+	"embed"
 	"fmt"
+	"io/fs"
 	"strings"
+	"testing"
 
+	"github.com/stretchr/testify/require"
 	"nhatp.com/go/gen-lib/file"
+	"nhatp.com/go/gen-lib/internal/util"
 )
 
 type MarkdownTestCase struct {
@@ -18,14 +23,62 @@ type MarkdownTestCase struct {
 	GoModFileContent  []byte
 	GoSumFileContent  []byte
 	PklDevFileContent []byte
+	options           MarkdownTestCaseOptions
 }
 
-func (mtc *MarkdownTestCase) PklDevLines() []string {
-	if mtc.PklDevFileContent != nil {
-		return []string{string(mtc.PklDevFileContent)}
+func (c *MarkdownTestCase) PklDevLines() []string {
+	if c.PklDevFileContent != nil {
+		return []string{string(c.PklDevFileContent)}
 	}
 	return nil
 }
+
+func (c *MarkdownTestCase) Options() MarkdownTestCaseOptions {
+	if c.options == nil {
+		c.options = util.ParseOptionsInMarkdownFile(c.Content)
+	}
+	return c.options
+}
+
+type MarkdownTestCaseOptions map[string]any
+
+func (m MarkdownTestCaseOptions) Boolean(name string) bool {
+	var value bool
+	if o, have := m[name]; have {
+		v, ok := o.(bool)
+		value = v && ok
+	}
+	return value
+}
+
+func RunEmbedGoldenFiles(t *testing.T, embedMarkdownFS embed.FS, fn func(tc MarkdownTestCase)) {
+	err := fs.WalkDir(embedMarkdownFS, ".", func(path string, entry fs.DirEntry, err error) error {
+		require.NoError(t, err)
+		if !entry.IsDir() {
+			t.Run(path, func(t *testing.T) {
+				RunEmbedGoldenFile(t, embedMarkdownFS, path, fn)
+			})
+		}
+		return nil
+	})
+
+	require.NoError(t, err)
+}
+
+func RunEmbedGoldenFile(t *testing.T, fs embed.FS, file string, fn func(testCase MarkdownTestCase)) {
+	content, err := fs.ReadFile(file)
+	require.NoError(t, err)
+
+	testCases := ParseMarkdown(content)
+	require.NotEmpty(t, testCases)
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			fn(tc)
+		})
+	}
+}
+
+// ---
 
 var mdParser = &markdownParser{}
 
@@ -109,7 +162,7 @@ func (p *markdownParser) parsePath(path []mdBlock) *MarkdownTestCase {
 				tc.SourceFiles = append(tc.SourceFiles, file.New(cbi.Path, []byte(cbi.RemainingContent)))
 			}
 
-		case "go":
+		default:
 			cbi := p.getCodeBlockInfo(cb)
 			if cbi.IsFile {
 				tc.SourceFiles = append(tc.SourceFiles, file.New(cbi.Path, []byte(cbi.RemainingContent)))

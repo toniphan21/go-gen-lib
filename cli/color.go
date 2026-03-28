@@ -70,35 +70,3 @@ func ColorWhite(text string) string {
 	}
 	return fmt.Sprintf("\u001B[0;37m%s\u001B[0m", text)
 }
-
-// ---
-
-// Deprecated: use color.Generated
-func ColorGenerated(text string) string {
-	return ColorGreen(text)
-}
-
-// Deprecated: use color.Source
-func ColorSource(text string) string {
-	return ColorBlue(text)
-}
-
-// Deprecated: use color.Binary
-func ColorBinary(text string) string {
-	return ColorWhite(text)
-}
-
-// Deprecated: use color.Version
-func ColorVersion(text string) string {
-	return text
-}
-
-// Deprecated: use color.Input
-func ColorInput(text string) string {
-	return ColorCyan(text)
-}
-
-// Deprecated: use color.Package
-func ColorPackage(text string) string {
-	return ColorYellow(text)
-}

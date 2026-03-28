@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"github.com/alexflint/go-arg"
+	genlib "nhatp.com/go/gen-lib"
 )
 
 type VersionCmd struct{}
@@ -18,6 +20,102 @@ type Arguments struct {
 	NoColor bool `arg:"--no-color" help:"Disable colors" default:"false"`
 	Verbose bool `arg:"-v,--verbose" help:"Enable verbose logging"`
 }
+
+type GenerateCmd struct {
+	WorkingDir     string `arg:"-w,--working-dir" help:"Working directory" default:"." placeholder:"WORKING_DIR"`
+	ConfigFileName string `arg:"-c,--config" help:"Config file name" placeholder:"FILE_NAME"`
+	DryRun         bool   `arg:"-d,--dry-run" help:"Preview changes without writing to disk"`
+
+	logger    *slog.Logger
+	fm        genlib.FileManager
+	logPoints *GenerateLogPoints
+}
+
+func (c *GenerateCmd) Logger() *slog.Logger {
+	return c.logger
+}
+
+func (c *GenerateCmd) ResolveWorkingDir() string {
+	if c.WorkingDir == "" {
+		wd, err := os.Getwd()
+		if err != nil {
+			panic(err)
+		}
+		return wd
+	}
+
+	absPath, err := filepath.Abs(c.WorkingDir)
+	if err != nil {
+		panic(err)
+	}
+	return absPath
+}
+
+func (c *GenerateCmd) ConfigFilePath(defaultName string) string {
+	var fn string
+	if c.ConfigFileName == "" {
+		fn = defaultName
+	} else {
+		fn = c.ConfigFileName
+	}
+	return filepath.Join(c.ResolveWorkingDir(), fn)
+}
+
+func (c *GenerateCmd) FileManager(options ...genlib.FileManagerOption) genlib.FileManager {
+	if c.fm == nil {
+		c.fm = genlib.NewFileManager(c.ResolveWorkingDir(), options...)
+	}
+	return c.fm
+}
+
+func (c *GenerateCmd) Execute(cb func() error, options ...ExecuteCmdOption) error {
+	for _, opt := range options {
+		opt.generate(c)
+	}
+
+	runner := &GenerateRunner{
+		Generate:    cb,
+		DryRun:      c.DryRun,
+		FileManager: c.fm,
+		Logger:      c.logger,
+		LogPoints:   c.logPoints,
+	}
+	return runner.Run()
+}
+
+type TestCmd struct {
+	Files     []string `arg:"positional" help:"Markdown file(s) to test" placeholder:"FILE"`
+	Name      string   `arg:"-n,--name" help:"Run test which has matched name (case insensitive)" default:""`
+	ShowSetup bool     `arg:"-s,--show-setup" help:"Show test setup steps" default:"false"`
+	TabSize   int      `arg:"-t,--tab-size" help:"Number of spaces to use in tab size" default:"8"`
+	EmitCode  string   `arg:"-e,--emit-code" help:"Emit to code if the test passed. If empty looking for path in Markdown comment." default:""`
+
+	logger           *slog.Logger
+	filePathResolver func(string) string
+}
+
+func (c *TestCmd) Execute(
+	executeTestCase func(testCase TestCase, options map[string]any) (genlib.FileManager, error),
+	options ...ExecuteCmdOption,
+) {
+	for _, opt := range options {
+		opt.test(c)
+	}
+
+	runner := &TestRunner{
+		RunTestCase:      executeTestCase,
+		Files:            c.Files,
+		Name:             c.Name,
+		TabSize:          c.TabSize,
+		ShowSetup:        c.ShowSetup,
+		EmitPath:         c.EmitCode,
+		Logger:           c.logger,
+		FilePathResolver: c.filePathResolver,
+	}
+	runner.Run()
+}
+
+// ---
 
 func ParseArgs() (*Arguments, *arg.Parser) {
 	var args Arguments

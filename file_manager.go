@@ -77,6 +77,8 @@ type FileManager interface {
 
 	TestFile(pkg *packages.Package, output Output) (*GenFile, error)
 
+	Make(pkg *packages.Package, pkgName string, filePath string) (*GenFile, error)
+
 	File(relPath string) (*GenFile, error)
 
 	Files() []*GenFile
@@ -137,15 +139,15 @@ func (fm *fileManagerImpl) RootDir() string {
 }
 
 func (fm *fileManagerImpl) SourceFile(pkg *packages.Package, output Output) (*GenFile, error) {
-	return fm.makeFile(pkg, output.PackageName, output.SourceFileName)
+	return fm.Make(pkg, output.PackageName, output.SourceFileName)
 }
 
 func (fm *fileManagerImpl) TestFile(pkg *packages.Package, output Output) (*GenFile, error) {
-	return fm.makeFile(pkg, output.PackageName, output.TestFileName)
+	return fm.Make(pkg, output.PackageName, output.TestFileName)
 }
 
-func (fm *fileManagerImpl) makeFile(pkg *packages.Package, pkgName string, fileName string) (*GenFile, error) {
-	fullPath := filepath.Join(pkg.Dir, fileName)
+func (fm *fileManagerImpl) Make(pkg *packages.Package, pkgName string, filePath string) (*GenFile, error) {
+	fullPath := filepath.Join(pkg.Dir, filePath)
 	relPath, err := filepath.Rel(fm.rootDir, fullPath)
 	if err != nil {
 		return nil, err

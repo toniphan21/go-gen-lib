@@ -104,6 +104,52 @@ func Test_ParseMarkdownCode(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			name: "unknown file type can be a golden File or source file",
+			content: []string{
+				`## MD file can be documentation and golden test as the same time`,
+				`let's setup a module`,
+				"",
+				"```go.mod",
+				"module nhatp.com/go/example",
+				"go 1.24",
+				"```",
+				"",
+				`and you have a golang source code`,
+				"",
+				"```go",
+				`// file: main.go`,
+				`package main`,
+				"```",
+				"",
+				`with custom file`,
+				"```input",
+				`// file: cli-cmd`,
+				"input for CLI",
+				"```",
+				"",
+				`with custom golden file`,
+				"```output",
+				`// golden-file: cli-output`,
+				"output from CLI",
+				"```",
+				"",
+			},
+			expected: []MarkdownTestCase{
+				{
+					SourceFiles: []file.File{
+						file.New("go.mod", []byte("module nhatp.com/go/example\ngo 1.24\n")),
+						file.New("main.go", []byte("package main\n")),
+						file.New("cli-cmd", []byte("input for CLI\n")),
+					},
+					GoldenFiles: []file.File{
+						file.New("cli-output", []byte("output from CLI\n")),
+					},
+					GoModFileContent: []byte("module nhatp.com/go/example\ngo 1.24\n"),
+				},
+			},
+		},
 	}
 
 	for _, tc := range cases {

@@ -27,9 +27,9 @@ func Test_matchName(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		cmd := TestCmd{}
+		runner := TestRunner{}
 		t.Run(tc.name+" "+tc.term, func(t *testing.T) {
-			out := cmd.matchName(tc.name, tc.term)
+			out := runner.matchName(tc.name, tc.term)
 			assert.Equal(t, tc.want, out)
 		})
 	}
@@ -39,25 +39,25 @@ func Test_readFileContent(t *testing.T) {
 	wd, err := os.Getwd()
 	require.NoError(t, err)
 
-	cmd := &TestCmd{
-		filePathResolver: VanityURLFilePathResolver,
+	runner := &TestRunner{
+		FilePathResolver: VanityURLFilePathResolver,
 	}
-	fileContent, err := cmd.readFileContent(filepath.Join(wd, "testdata", "file.md"))
+	fileContent, err := runner.readFileContent(filepath.Join(wd, "testdata", "file.md"))
 	require.NoError(t, err)
 	assert.Equal(t, "# just for testing\n", string(fileContent))
 
-	dirContent, err := cmd.readFileContent(filepath.Join(wd, "testdata"))
+	dirContent, err := runner.readFileContent(filepath.Join(wd, "testdata"))
 	assert.Error(t, err)
 	assert.Nil(t, dirContent)
 
-	_, err = cmd.readFileContent("https://raw.githubusercontent.com/toniphan21/go-mapper-gen/refs/heads/")
+	_, err = runner.readFileContent("https://raw.githubusercontent.com/toniphan21/go-mapper-gen/refs/heads/")
 	assert.Error(t, err)
 
-	remoteFile, err := cmd.readFileContent("https://raw.githubusercontent.com/toniphan21/go-mapper-gen/refs/heads/main/README.md")
+	remoteFile, err := runner.readFileContent("https://raw.githubusercontent.com/toniphan21/go-mapper-gen/refs/heads/main/README.md")
 	require.NoError(t, err)
 	assert.NotNil(t, remoteFile)
 
-	useVanityBase, err := cmd.readFileContent("nhatp.com/go/mapper-gen/README.md")
+	useVanityBase, err := runner.readFileContent("nhatp.com/go/mapper-gen/README.md")
 	require.NoError(t, err)
 	assert.NotNil(t, useVanityBase)
 }
