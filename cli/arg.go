@@ -92,6 +92,22 @@ type TestCmd struct {
 
 	logger           *slog.Logger
 	filePathResolver func(string) string
+	runner           *TestRunner
+}
+
+func (c *TestCmd) Runner() *TestRunner {
+	if c.runner == nil {
+		c.runner = &TestRunner{
+			Files:            c.Files,
+			Name:             c.Name,
+			TabSize:          c.TabSize,
+			ShowSetup:        c.ShowSetup,
+			EmitPath:         c.EmitCode,
+			Logger:           c.logger,
+			FilePathResolver: c.filePathResolver,
+		}
+	}
+	return c.runner
 }
 
 func (c *TestCmd) Execute(
@@ -102,17 +118,33 @@ func (c *TestCmd) Execute(
 		opt.test(c)
 	}
 
-	runner := &TestRunner{
-		RunTestCase:      executeTestCase,
-		Files:            c.Files,
-		Name:             c.Name,
-		TabSize:          c.TabSize,
-		ShowSetup:        c.ShowSetup,
-		EmitPath:         c.EmitCode,
-		Logger:           c.logger,
-		FilePathResolver: c.filePathResolver,
-	}
+	runner := c.Runner()
+	runner.RunTestCase = executeTestCase
 	runner.Run()
+}
+
+func (c *TestCmd) PrintError(msg string, args ...any) {
+	c.Runner().PrintError(msg, args...)
+}
+
+func (c *TestCmd) PrintWarn(msg string, args ...any) {
+	c.Runner().PrintWarn(msg, args...)
+}
+
+func (c *TestCmd) PrintSetup(msg string, args ...any) {
+	c.Runner().PrintSetup(msg, args...)
+}
+
+func (c *TestCmd) PrintSetupVerbose(msg string, args ...any) {
+	c.Runner().PrintSetupVerbose(msg, args...)
+}
+
+func (c *TestCmd) PrintFilePathResolved(in, out string) {
+	c.Runner().PrintFilePathResolved(in, out)
+}
+
+func (c *TestCmd) Print(msg string) {
+	c.Runner().Print(msg)
 }
 
 // ---
