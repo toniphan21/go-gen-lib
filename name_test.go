@@ -8,7 +8,7 @@ import (
 
 func Test_VarNameGenerate(t *testing.T) {
 	t.Run("Next", func(t *testing.T) {
-		g := NewVarName("v", nil)
+		g := NewNameManager("v", nil)
 
 		assert.Equal(t, "v0", g.Next())
 		assert.Equal(t, "v1", g.Next())
@@ -24,7 +24,7 @@ func Test_VarNameGenerate(t *testing.T) {
 	})
 
 	t.Run("Reserve", func(t *testing.T) {
-		g := NewVarName("v", []string{"v3", "v5"})
+		g := NewNameManager("v", []string{"v3", "v5"})
 
 		assert.Equal(t, "v0", g.Next())
 		assert.Equal(t, "v1", g.Next())
@@ -38,7 +38,7 @@ func Test_VarNameGenerate(t *testing.T) {
 	})
 
 	t.Run("Request", func(t *testing.T) {
-		g := NewVarName("v", []string{"v3", "v5"})
+		g := NewNameManager("v", []string{"v3", "v5"})
 
 		assert.Equal(t, "v0", g.Next())
 		assert.Equal(t, "v1", g.Next())
@@ -51,10 +51,17 @@ func Test_VarNameGenerate(t *testing.T) {
 		assert.Equal(t, "v10", g.Request("v1"))
 		assert.Equal(t, "v11", g.Next())
 
+		assert.Equal(t, "repo", g.Request("repo"))
+		assert.Equal(t, "repo0", g.Request("repo"))
+		assert.Equal(t, "repo1", g.Request("repo"))
+		assert.Equal(t, "repo2", g.Request("repo"))
+
 		g.Reserve("name2")
-	
+
+		assert.Equal(t, "name", g.Request("name"))
 		assert.Equal(t, "name0", g.Request("name"))
 		assert.Equal(t, "name1", g.Request("name"))
 		assert.Equal(t, "name3", g.Request("name"))
+
 	})
 }

@@ -2,7 +2,6 @@ package genlib
 
 import (
 	"context"
-	"fmt"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -12,35 +11,47 @@ type EmitterContext interface {
 
 	Package() *packages.Package
 
+	PackageName() NameManager
+
 	GenFile() *GenFile
 
 	FileManager() FileManager
 
-	NextVarName() string
+	VarName() NameManager
 }
 
-func NewEmitterContext(pkg *packages.Package, fm FileManager, gf *GenFile, varTemplate string) EmitterContext {
+func NewEmitterContext(pkg *packages.Package, fm FileManager, gf *GenFile, varPrefix string) EmitterContext {
+	vp := "v"
+	if varPrefix != "" {
+		vp = varPrefix
+	}
+
 	return &emitterContext{
-		Context:     context.Background(),
-		pkg:         pkg,
-		fileManager: fm,
-		genFile:     gf,
-		varTemplate: varTemplate,
+		Context:        context.Background(),
+		pkg:            pkg,
+		pkgNameManager: NewNameManager("typ", pkg.Types.Scope().Names()),
+		fileManager:    fm,
+		genFile:        gf,
+		varNameManager: NewNameManager(vp, nil),
 	}
 }
 
 type emitterContext struct {
 	context.Context
 
-	pkg             *packages.Package
-	genFile         *GenFile
-	fileManager     FileManager
-	varTemplate     string
-	currentVarCount int
+	pkg            *packages.Package
+	pkgNameManager NameManager
+	genFile        *GenFile
+	fileManager    FileManager
+	varNameManager NameManager
 }
 
 func (c *emitterContext) Package() *packages.Package {
 	return c.pkg
+}
+
+func (c *emitterContext) PackageName() NameManager {
+	return c.pkgNameManager
 }
 
 func (c *emitterContext) GenFile() *GenFile {
@@ -51,15 +62,8 @@ func (c *emitterContext) FileManager() FileManager {
 	return c.fileManager
 }
 
-func (c *emitterContext) NextVarName() string {
-	template := "v%d"
-	if c.varTemplate != "" {
-		template = c.varTemplate
-	}
-
-	v := fmt.Sprintf(template, c.currentVarCount)
-	c.currentVarCount++
-	return v
+func (c *emitterContext) VarName() NameManager {
+	return c.varNameManager
 }
 
 var _ EmitterContext = (*emitterContext)(nil)
