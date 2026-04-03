@@ -25,13 +25,7 @@ func writeSourceFile(out string, f file.File) error {
 }
 
 func LoadPackages(dir string) ([]*packages.Package, error) {
-	cfg := &packages.Config{
-		Mode: packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedSyntax | packages.NeedDeps | packages.NeedImports,
-		Fset: token.NewFileSet(),
-		Dir:  dir,
-	}
-
-	return packages.Load(cfg, "./...")
+	return packages.Load(LoadPackagesConfig(dir), "./...")
 }
 
 func LoadPackagesWithGenFiles(dir string, fm FileManager) ([]*packages.Package, error) {
@@ -48,6 +42,14 @@ func LoadPackagesWithGenFiles(dir string, fm FileManager) ([]*packages.Package, 
 	}
 
 	return packages.Load(cfg, "./...")
+}
+
+func LoadPackagesConfig(dir string) *packages.Config {
+	return &packages.Config{
+		Mode: packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedSyntax | packages.NeedDeps | packages.NeedImports,
+		Fset: token.NewFileSet(),
+		Dir:  dir,
+	}
 }
 
 func SetupSourceCode(dir string, files []file.File, additionalFiles ...file.File) error {

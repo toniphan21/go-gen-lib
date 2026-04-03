@@ -40,6 +40,8 @@ func (o *Output) Merge(others ...Output) {
 type GenFile struct {
 	FullPath string
 	RelPath  string
+	PkgPath  string
+	PkgName  string
 	jenFile  *jen.File
 	actions  map[string]bool
 }
@@ -167,7 +169,13 @@ func (fm *fileManagerImpl) Make(pkg *packages.Package, pkgName string, filePath 
 	hc = strings.ReplaceAll(hc, "{version}", fm.version)
 	jf.HeaderComment(hc)
 
-	file := &GenFile{FullPath: fullPath, RelPath: relPath, jenFile: jf}
+	file := &GenFile{
+		FullPath: fullPath,
+		RelPath:  relPath,
+		PkgPath:  filePkgPath,
+		PkgName:  filePkgName,
+		jenFile:  jf,
+	}
 	fm.files[relPath] = file
 
 	return file, nil
