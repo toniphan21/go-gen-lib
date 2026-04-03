@@ -3,6 +3,7 @@ package genlib
 import (
 	"errors"
 	"maps"
+	"path"
 	"path/filepath"
 	"slices"
 	"sort"
@@ -157,11 +158,11 @@ func (fm *fileManagerImpl) Make(pkg *packages.Package, pkgName string, filePath 
 		return f, nil
 	}
 
-	if strings.TrimSpace(pkgName) == "" {
-		pkgName = pkg.Name
-	}
+	filePkgPath, filePkgName := fm.resolvePkgPathAndName(
+		pkg.PkgPath, pkg.Name, strings.TrimSpace(pkgName), relPath,
+	)
 
-	jf := jen.NewFilePathName(pkg.PkgPath, pkgName)
+	jf := jen.NewFilePathName(filePkgPath, filePkgName)
 	hc := strings.ReplaceAll(fm.headerComment, "{binaryName}", fm.binaryName)
 	hc = strings.ReplaceAll(hc, "{version}", fm.version)
 	jf.HeaderComment(hc)
@@ -170,6 +171,33 @@ func (fm *fileManagerImpl) Make(pkg *packages.Package, pkgName string, filePath 
 	fm.files[relPath] = file
 
 	return file, nil
+}
+
+func (fm *fileManagerImpl) resolvePkgPathAndName(
+	currentPkgPath, currentPkgName string,
+	requestedPkgName string,
+	fileRelPath string,
+) (string, string) {
+	if dir := path.Dir(fileRelPath); dir != "" && dir != "." {
+		pkgName := path.Base(dir)
+		pkgPath := path.Join(currentPkgPath, dir)
+
+		if requestedPkgName != "" {
+			pkgName = requestedPkgName
+		}
+		return pkgPath, pkgName
+	}
+
+	pkgPath := currentPkgPath
+	pkgName := currentPkgName
+	if requestedPkgName != "" {
+		pkgName = requestedPkgName
+	}
+
+	if currentPkgName != pkgName {
+		pkgPath = filepath.Join(path.Dir(currentPkgPath), pkgName)
+	}
+	return pkgPath, pkgName
 }
 
 func (fm *fileManagerImpl) File(relPath string) (*GenFile, error) {

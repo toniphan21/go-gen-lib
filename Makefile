@@ -1,7 +1,9 @@
+-include .env
+
 RELEASE := $(shell sed -n 's/const Version = "\(.*\)"/\1/p' version.go)
 
-SERVER := root@nhatp.com
-WEB_ROOT := /var/www
+SERVER := $(NHATP_SERVER)
+WEB_ROOT := $(NHATP_WEB_ROOT)
 BASE_PATH := /go/gen-lib
 WEB_PATH := $(WEB_ROOT)$(BASE_PATH)
 

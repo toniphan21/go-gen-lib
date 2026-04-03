@@ -11,8 +11,6 @@ type EmitterContext interface {
 
 	Package() *packages.Package
 
-	PackageName() NameManager
-
 	GenFile() *GenFile
 
 	FileManager() FileManager
@@ -29,7 +27,6 @@ func NewEmitterContext(pkg *packages.Package, fm FileManager, gf *GenFile, varPr
 	return &emitterContext{
 		Context:        context.Background(),
 		pkg:            pkg,
-		pkgNameManager: NewNameManager("typ", pkg.Types.Scope().Names()),
 		fileManager:    fm,
 		genFile:        gf,
 		varNameManager: NewNameManager(vp, nil),
@@ -48,10 +45,6 @@ type emitterContext struct {
 
 func (c *emitterContext) Package() *packages.Package {
 	return c.pkg
-}
-
-func (c *emitterContext) PackageName() NameManager {
-	return c.pkgNameManager
 }
 
 func (c *emitterContext) GenFile() *GenFile {
