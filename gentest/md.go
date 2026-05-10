@@ -51,7 +51,7 @@ func (m MarkdownTestCaseOptions) Boolean(name string) bool {
 	return value
 }
 
-func RunEmbedGoldenFiles(t *testing.T, embedMarkdownFS embed.FS, fn func(tc MarkdownTestCase)) {
+func RunEmbedGoldenFiles(t *testing.T, embedMarkdownFS embed.FS, fn func(t *testing.T, tc MarkdownTestCase)) {
 	err := fs.WalkDir(embedMarkdownFS, ".", func(path string, entry fs.DirEntry, err error) error {
 		require.NoError(t, err)
 		if !entry.IsDir() {
@@ -65,7 +65,7 @@ func RunEmbedGoldenFiles(t *testing.T, embedMarkdownFS embed.FS, fn func(tc Mark
 	require.NoError(t, err)
 }
 
-func RunEmbedGoldenFile(t *testing.T, fs embed.FS, file string, fn func(testCase MarkdownTestCase)) {
+func RunEmbedGoldenFile(t *testing.T, fs embed.FS, file string, fn func(t *testing.T, testCase MarkdownTestCase)) {
 	content, err := fs.ReadFile(file)
 	require.NoError(t, err)
 
@@ -73,7 +73,7 @@ func RunEmbedGoldenFile(t *testing.T, fs embed.FS, file string, fn func(testCase
 	require.NotEmpty(t, testCases)
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			fn(tc)
+			fn(t, tc)
 		})
 	}
 }
