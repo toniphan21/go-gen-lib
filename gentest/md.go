@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"nhatp.com/go/gen-lib/file"
 	"nhatp.com/go/gen-lib/internal/util"
 )
@@ -53,7 +52,9 @@ func (m MarkdownTestCaseOptions) Boolean(name string) bool {
 
 func RunEmbedGoldenFiles(t *testing.T, embedMarkdownFS embed.FS, fn func(t *testing.T, tc MarkdownTestCase)) {
 	err := fs.WalkDir(embedMarkdownFS, ".", func(path string, entry fs.DirEntry, err error) error {
-		require.NoError(t, err)
+		if err != nil {
+			t.Fatal(err)
+		}
 		if !entry.IsDir() {
 			t.Run(path, func(t *testing.T) {
 				RunEmbedGoldenFile(t, embedMarkdownFS, path, fn)
@@ -62,15 +63,21 @@ func RunEmbedGoldenFiles(t *testing.T, embedMarkdownFS embed.FS, fn func(t *test
 		return nil
 	})
 
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func RunEmbedGoldenFile(t *testing.T, fs embed.FS, file string, fn func(t *testing.T, testCase MarkdownTestCase)) {
 	content, err := fs.ReadFile(file)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	testCases := ParseMarkdown(content)
-	require.NotEmpty(t, testCases)
+	if len(testCases) == 0 {
+		t.Fatal("no testcases found")
+	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			fn(t, tc)

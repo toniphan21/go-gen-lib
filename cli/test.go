@@ -282,7 +282,7 @@ func (r *TestRunner) Run() {
 			// handle test result by comparing golden files in the fm and md.GoldenFile
 			if fm != nil {
 				for _, f := range fm.Files() {
-					err := r.writeTestFile(tempDir, f.RelPath, []byte(f.Content()))
+					err := r.writeTestFileFullPath(f.FilePath(), f.FileContent())
 					if err != nil {
 						r.PrintError(err.Error())
 						isSuccess = false
@@ -476,11 +476,15 @@ func (r *TestRunner) compareFileContent(left, right []byte) bool {
 
 func (r *TestRunner) writeTestFile(testDir string, filePath string, fileContent []byte) error {
 	fp := filepath.Join(testDir, filePath)
-	dir := filepath.Dir(fp)
+	return r.writeTestFileFullPath(fp, fileContent)
+}
+
+func (r *TestRunner) writeTestFileFullPath(filePath string, fileContent []byte) error {
+	dir := filepath.Dir(filePath)
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
 	}
-	return os.WriteFile(fp, fileContent, 0600)
+	return os.WriteFile(filePath, fileContent, 0600)
 }
 
 func (r *TestRunner) copyDir(src string, dst string) error {

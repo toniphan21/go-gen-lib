@@ -31,7 +31,7 @@ func LoadPackages(dir string) ([]*packages.Package, error) {
 func LoadPackagesWithGenFiles(dir string, fm FileManager) ([]*packages.Package, error) {
 	overlay := make(map[string][]byte)
 	for _, v := range fm.Files() {
-		overlay[v.FullPath] = []byte(v.Content())
+		overlay[v.FilePath()] = v.FileContent()
 	}
 
 	cfg := &packages.Config{

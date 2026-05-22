@@ -73,6 +73,14 @@ func TypeToJenCode(t types.Type) jen.Code {
 		}
 		return fn
 
+	case *types.Alias:
+		obj := tt.Obj()
+		pkg := obj.Pkg()
+		if pkg != nil {
+			return jen.Qual(pkg.Path(), obj.Name())
+		}
+		return jen.Id(obj.Name())
+
 	default:
 		return jen.Id(tt.String())
 	}

@@ -11,9 +11,12 @@ import (
 
 	"github.com/dave/jennifer/jen"
 	"golang.org/x/tools/go/packages"
+	"nhatp.com/go/gen-lib/file"
 )
 
 var ErrFileNotFound = errors.New("file not found")
+var ErrGenFileNotFound = errors.New("GenFile not found")
+var ErrCannotMakeGenFile = errors.New("cannot make GenFile")
 
 type Output struct {
 	PackageName    string
@@ -46,6 +49,14 @@ type GenFile struct {
 	actions  map[string]bool
 }
 
+func (f *GenFile) FilePath() string {
+	return f.FullPath
+}
+
+func (f *GenFile) FileContent() []byte {
+	return []byte(f.Content())
+}
+
 func (f *GenFile) JenFile() *jen.File {
 	return f.jenFile
 }
@@ -67,6 +78,8 @@ func (f *GenFile) Once(action string, fn func()) *GenFile {
 	return f
 }
 
+var _ file.File = (*GenFile)(nil)
+
 // ---
 
 const defaultBinary = "generator"
@@ -82,9 +95,15 @@ type FileManager interface {
 
 	Make(pkg *packages.Package, pkgName string, filePath string) (*GenFile, error)
 
-	File(relPath string) (*GenFile, error)
+	Add(file file.File) error
 
-	Files() []*GenFile
+	GenFile(relPath string) (*GenFile, error)
+
+	GenFiles() []*GenFile
+
+	File(relPath string) (file.File, error)
+
+	Files() []file.File
 }
 
 func NewFileManager(rootDir string, opts ...FileManagerOption) FileManager {
@@ -93,7 +112,7 @@ func NewFileManager(rootDir string, opts ...FileManagerOption) FileManager {
 		binaryName:    defaultBinary,
 		version:       defaultVersion,
 		headerComment: defaultHeaderComment,
-		files:         make(map[string]*GenFile),
+		files:         make(map[string]file.File),
 	}
 	for _, opt := range opts {
 		opt.apply(impl)
@@ -134,7 +153,7 @@ type fileManagerImpl struct {
 	binaryName    string
 	version       string
 	headerComment string
-	files         map[string]*GenFile
+	files         map[string]file.File
 }
 
 func (fm *fileManagerImpl) RootDir() string {
@@ -157,7 +176,11 @@ func (fm *fileManagerImpl) Make(pkg *packages.Package, pkgName string, filePath 
 	}
 
 	if f, have := fm.files[relPath]; have {
-		return f, nil
+		gf, ok := f.(*GenFile)
+		if !ok {
+			return nil, ErrCannotMakeGenFile
+		}
+		return gf, nil
 	}
 
 	filePkgPath, filePkgName := fm.resolvePkgPathAndName(
@@ -169,16 +192,16 @@ func (fm *fileManagerImpl) Make(pkg *packages.Package, pkgName string, filePath 
 	hc = strings.ReplaceAll(hc, "{version}", fm.version)
 	jf.HeaderComment(hc)
 
-	file := &GenFile{
+	gf := &GenFile{
 		FullPath: fullPath,
 		RelPath:  relPath,
 		PkgPath:  filePkgPath,
 		PkgName:  filePkgName,
 		jenFile:  jf,
 	}
-	fm.files[relPath] = file
+	fm.files[relPath] = gf
 
-	return file, nil
+	return gf, nil
 }
 
 func (fm *fileManagerImpl) resolvePkgPathAndName(
@@ -208,7 +231,49 @@ func (fm *fileManagerImpl) resolvePkgPathAndName(
 	return pkgPath, pkgName
 }
 
-func (fm *fileManagerImpl) File(relPath string) (*GenFile, error) {
+func (fm *fileManagerImpl) Add(file file.File) error {
+	fullPath := file.FilePath()
+	relPath, err := filepath.Rel(fm.rootDir, fullPath)
+	if err != nil {
+		return err
+	}
+
+	fm.files[relPath] = file
+	return nil
+}
+
+func (fm *fileManagerImpl) GenFile(relPath string) (*GenFile, error) {
+	f, err := fm.File(relPath)
+	if err != nil {
+		return nil, err
+	}
+
+	gf, ok := f.(*GenFile)
+	if !ok {
+		return nil, ErrGenFileNotFound
+	}
+	return gf, nil
+}
+
+func (fm *fileManagerImpl) GenFiles() []*GenFile {
+	if len(fm.files) == 0 {
+		return nil
+	}
+
+	var result []*GenFile
+	ps := slices.Collect(maps.Keys(fm.files))
+	sort.Strings(ps)
+
+	for _, p := range ps {
+		f := fm.files[p]
+		if gf, ok := f.(*GenFile); ok {
+			result = append(result, gf)
+		}
+	}
+	return result
+}
+
+func (fm *fileManagerImpl) File(relPath string) (file.File, error) {
 	f, have := fm.files[relPath]
 	if !have {
 		return nil, ErrFileNotFound
@@ -216,12 +281,12 @@ func (fm *fileManagerImpl) File(relPath string) (*GenFile, error) {
 	return f, nil
 }
 
-func (fm *fileManagerImpl) Files() []*GenFile {
+func (fm *fileManagerImpl) Files() []file.File {
 	if len(fm.files) == 0 {
 		return nil
 	}
 
-	result := make([]*GenFile, len(fm.files), len(fm.files))
+	result := make([]file.File, len(fm.files), len(fm.files))
 	ps := slices.Collect(maps.Keys(fm.files))
 	sort.Strings(ps)
 

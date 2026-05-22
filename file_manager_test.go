@@ -199,9 +199,9 @@ func Test_FileManager(t *testing.T) {
 		})
 	})
 
-	t.Run("Files", func(t *testing.T) {
+	t.Run("GenFiles", func(t *testing.T) {
 		t.Run("returns nil if there is no files", func(t *testing.T) {
-			assert.Nil(t, makeFileManager().Files())
+			assert.Nil(t, makeFileManager().GenFiles())
 		})
 
 		t.Run("returns a copied slice of GenFile sorted by file relPath", func(t *testing.T) {
@@ -212,7 +212,7 @@ func Test_FileManager(t *testing.T) {
 			fm.files["c/gen.go"] = &GenFile{RelPath: "c/gen.go"}
 			fm.files["c/anything.go"] = &GenFile{RelPath: "c/anything.go"}
 
-			result := fm.Files()
+			result := fm.GenFiles()
 
 			assert.Len(t, result, 4)
 			assert.Equal(t, "a/gen.go", result[0].RelPath)

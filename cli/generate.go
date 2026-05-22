@@ -34,7 +34,7 @@ func (r *GenerateRunner) Run() error {
 		r.LogPoints.BeforeHandleOutput(r.DryRun)
 	}
 
-	for _, out := range r.FileManager.Files() {
+	for _, out := range r.FileManager.GenFiles() {
 		content := out.Content()
 
 		if r.LogPoints != nil && r.LogPoints.BeforeHandleFile != nil {
